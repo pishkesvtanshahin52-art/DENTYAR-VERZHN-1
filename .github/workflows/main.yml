@@ -22,10 +22,32 @@ jobs:
       - name: نصب وابستگی‌ها
         run: npm install
 
+      - name: آماده‌سازی فایل‌های وب DENTYAR
+        run: |
+          rm -rf www
+          mkdir -p www/js
+          mkdir -p www/css
+
+          cp index.html www/index.html
+
+          cp *.js www/js/ 2>/dev/null || true
+          cp *.css www/css/ 2>/dev/null || true
+
+          cp *.json www/ 2>/dev/null || true
+          cp *.png www/ 2>/dev/null || true
+          cp *.jpg www/ 2>/dev/null || true
+          cp *.jpeg www/ 2>/dev/null || true
+          cp *.webp www/ 2>/dev/null || true
+
+          cp manifest.json www/manifest.json 2>/dev/null || true
+
+          echo "ساختار www:"
+          find www -maxdepth 2 -type f | sort
+
       - name: نصب Capacitor
         run: npm install @capacitor/core @capacitor/cli @capacitor/android
 
-      - name: ایجاد Android پروژه
+      - name: ایجاد پروژه Android
         run: |
           if [ ! -d "android" ]; then
             npx cap add android
@@ -40,8 +62,9 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: ذخیره APK به عنوان Artifact
+      - name: ذخیره APK
         uses: actions/upload-artifact@v4
         with:
           name: DENTYAR-V1-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
+        
