@@ -8,6 +8,7 @@ on:
 
 jobs:
   build:
+    name: ساخت APK DENTYAR V1
     runs-on: ubuntu-latest
 
     steps:
@@ -20,6 +21,7 @@ jobs:
           distribution: temurin
           java-version: '21'
           check-latest: true
+          cache: gradle
 
       - name: بررسی Java
         run: |
@@ -33,6 +35,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: npm
 
       - name: نصب Capacitor
         run: |
@@ -41,9 +44,16 @@ jobs:
 
       - name: آماده‌سازی فایل‌های DENTYAR
         run: |
+          set -e
+
           rm -rf www
           mkdir -p www/js
           mkdir -p www/css
+
+          if [ ! -f "index.html" ]; then
+            echo "ERROR: index.html پیدا نشد."
+            exit 1
+          fi
 
           cp index.html www/index.html
 
@@ -55,7 +65,7 @@ jobs:
           cp *.jpeg www/ 2>/dev/null || true
           cp *.webp www/ 2>/dev/null || true
 
-          echo "ساختار WWW:"
+          echo "===== ساختار WWW ====="
           find www -maxdepth 2 -type f | sort
 
       - name: ایجاد تنظیمات Capacitor
@@ -69,20 +79,27 @@ jobs:
           }
           EOF
 
+          echo "===== capacitor.config.json ====="
+          cat capacitor.config.json
+
       - name: ایجاد پروژه Android
         run: |
           npx cap add android
 
       - name: تنظیم اجباری Java 21 برای Gradle
         run: |
+          set -e
+
           cd android
+
+          touch gradle.properties
 
           cat >> gradle.properties <<EOF
           org.gradle.java.home=$JAVA_HOME
           org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
           EOF
 
-          echo "Gradle Java:"
+          echo "===== Gradle Version ====="
           ./gradlew --version
 
       - name: همگام‌سازی Android
@@ -91,5 +108,63 @@ jobs:
 
       - name: بررسی نهایی فایل‌های Web
         run: |
-          echo "بررسی index.html:"
-         
+          set -e
+
+          echo "===== بررسی index.html ====="
+          test -f www/index.html
+
+          echo "===== بررسی WWW ====="
+          find www -maxdepth 2 -type f | sort
+
+          echo "===== بررسی Android ====="
+          test -f android/gradlew
+          test -d android/app
+
+          echo "همه بررسی‌های اولیه موفق بود."
+
+      - name: ساخت APK
+        run: |
+          set -e
+
+          cd android
+
+          chmod +x gradlew
+
+          echo "===== شروع ساخت APK ====="
+
+          ./gradlew \
+            -Dorg.gradle.java.home="$JAVA_HOME" \
+            -Dorg.gradle.jvmargs="-Xmx2048m -Dfile.encoding=UTF-8" \
+            assembleDebug \
+            --stacktrace
+
+          echo "===== ساخت APK با موفقیت پایان یافت ====="
+
+      - name: بررسی APK ساخته‌شده
+        run: |
+          set -e
+
+          APK_PATH="android/app/build/outputs/apk/debug/app-debug.apk"
+
+          echo "===== بررسی فایل APK ====="
+
+          if [ ! -f "$APK_PATH" ]; then
+            echo "ERROR: فایل APK ساخته نشده است."
+            echo "محتویات پوشه خروجی:"
+            find android/app/build/outputs -maxdepth 5 -type f 2>/dev/null || true
+            exit 1
+          fi
+
+          echo "APK پیدا شد:"
+          ls -lh "$APK_PATH"
+
+          echo "نوع فایل:"
+          file "$APK_PATH"
+
+      - name: آپلود APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DENTYAR-V1-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
