@@ -16,12 +16,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: نصب Java 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
-          check-latest: true
-          cache: gradle
 
       - name: بررسی Java
         run: |
@@ -35,7 +33,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: npm
 
       - name: نصب Capacitor
         run: |
@@ -50,10 +47,7 @@ jobs:
           mkdir -p www/js
           mkdir -p www/css
 
-          if [ ! -f "index.html" ]; then
-            echo "ERROR: index.html پیدا نشد."
-            exit 1
-          fi
+          test -f index.html
 
           cp index.html www/index.html
 
@@ -65,7 +59,7 @@ jobs:
           cp *.jpeg www/ 2>/dev/null || true
           cp *.webp www/ 2>/dev/null || true
 
-          echo "===== ساختار WWW ====="
+          echo "===== WWW ====="
           find www -maxdepth 2 -type f | sort
 
       - name: ایجاد تنظیمات Capacitor
@@ -79,14 +73,13 @@ jobs:
           }
           EOF
 
-          echo "===== capacitor.config.json ====="
           cat capacitor.config.json
 
       - name: ایجاد پروژه Android
         run: |
           npx cap add android
 
-      - name: تنظیم اجباری Java 21 برای Gradle
+      - name: تنظیم Java 21 برای Gradle
         run: |
           set -e
 
@@ -99,7 +92,7 @@ jobs:
           org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
           EOF
 
-          echo "===== Gradle Version ====="
+          echo "===== Gradle ====="
           ./gradlew --version
 
       - name: همگام‌سازی Android
@@ -110,17 +103,14 @@ jobs:
         run: |
           set -e
 
-          echo "===== بررسی index.html ====="
+          echo "===== Web ====="
           test -f www/index.html
 
-          echo "===== بررسی WWW ====="
-          find www -maxdepth 2 -type f | sort
-
-          echo "===== بررسی Android ====="
+          echo "===== Android ====="
           test -f android/gradlew
           test -d android/app
 
-          echo "همه بررسی‌های اولیه موفق بود."
+          echo "بررسی‌ها موفق بود."
 
       - name: ساخت APK
         run: |
@@ -130,7 +120,7 @@ jobs:
 
           chmod +x gradlew
 
-          echo "===== شروع ساخت APK ====="
+          echo "===== ساخت APK ====="
 
           ./gradlew \
             -Dorg.gradle.java.home="$JAVA_HOME" \
@@ -138,27 +128,21 @@ jobs:
             assembleDebug \
             --stacktrace
 
-          echo "===== ساخت APK با موفقیت پایان یافت ====="
-
       - name: بررسی APK ساخته‌شده
         run: |
           set -e
 
           APK_PATH="android/app/build/outputs/apk/debug/app-debug.apk"
 
-          echo "===== بررسی فایل APK ====="
+          echo "===== بررسی APK ====="
 
           if [ ! -f "$APK_PATH" ]; then
-            echo "ERROR: فایل APK ساخته نشده است."
-            echo "محتویات پوشه خروجی:"
+            echo "ERROR: APK ساخته نشده است."
             find android/app/build/outputs -maxdepth 5 -type f 2>/dev/null || true
             exit 1
           fi
 
-          echo "APK پیدا شد:"
           ls -lh "$APK_PATH"
-
-          echo "نوع فایل:"
           file "$APK_PATH"
 
       - name: آپلود APK
