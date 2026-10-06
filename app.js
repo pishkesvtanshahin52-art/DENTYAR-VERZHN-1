@@ -4,4 +4,4 @@ initErrors();
 const root=document.getElementById('app');
 const login=()=>renderLogin(root,async()=>{await maybeSetup();renderShell(root,login)});
 open().then(login);
-if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js?v=1.0.0').catch(()=>{});
+if('serviceWorker'in navigator&&location.hostname!=='localhost')navigator.serviceWorker.register('sw.js?v=1.0.0').catch(()=>{});
