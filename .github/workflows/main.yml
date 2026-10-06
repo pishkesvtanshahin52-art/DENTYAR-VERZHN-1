@@ -1,4 +1,4 @@
-name: دانلود APK
+name: ساخت APK
 
 on:
   workflow_dispatch:
@@ -19,19 +19,27 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+          check-latest: true
+
+      - name: بررسی Java
+        run: |
+          echo "JAVA_HOME=$JAVA_HOME"
+          which java
+          which javac
+          java -version
+          javac -version
 
       - name: نصب Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: npm
 
-      - name: آماده‌سازی Node.js
+      - name: نصب Capacitor
         run: |
           npm init -y
           npm install @capacitor/core @capacitor/cli @capacitor/android
 
-      - name: ساخت فایل‌های DENTYAR
+      - name: آماده‌سازی فایل‌های DENTYAR
         run: |
           rm -rf www
           mkdir -p www/js
@@ -65,21 +73,29 @@ jobs:
         run: |
           npx cap add android
 
+      - name: تنظیم اجباری Java 21 برای Gradle
+        run: |
+          cd android
+
+          mkdir -p gradle
+
+          cat >> gradle.properties <<EOF
+          org.gradle.java.home=$JAVA_HOME
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          EOF
+
+          echo "Gradle Java:"
+          ./gradlew --version
+
       - name: همگام‌سازی Android
         run: |
           npx cap sync android
-
-      - name: بررسی Java
-        run: |
-          java -version
-          cd android
-          ./gradlew --version
 
       - name: ساخت APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" assembleDebug --stacktrace
 
       - name: آپلود APK
         uses: actions/upload-artifact@v4
