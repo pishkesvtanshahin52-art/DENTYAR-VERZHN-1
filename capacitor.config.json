@@ -1,1 +1,7 @@
-{"appId":"ir.dentyar.app","appName":"DENTYAR","webDir":"www","android":{"allowMixedContent":false}}
+{
+  "appId":"ir.dentyar.app",
+  "appName":"DENTYAR",
+  "webDir":"www",
+  "server":{"androidScheme":"https"},
+  "plugins":{"SplashScreen":{"launchShowDuration":0}}
+}
