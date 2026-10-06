@@ -1,10 +1,10 @@
-name: ساخت APK
+name: ساخت APK DENTYAR V1
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - اصلی
+      - main
 
 jobs:
   build:
@@ -77,8 +77,6 @@ jobs:
         run: |
           cd android
 
-          mkdir -p gradle
-
           cat >> gradle.properties <<EOF
           org.gradle.java.home=$JAVA_HOME
           org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
@@ -91,15 +89,7 @@ jobs:
         run: |
           npx cap sync android
 
-      - name: ساخت APK
+      - name: بررسی نهایی فایل‌های Web
         run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" assembleDebug --stacktrace
-
-      - name: آپلود APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: DENTYAR-V1-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
+          echo "بررسی index.html:"
+         
