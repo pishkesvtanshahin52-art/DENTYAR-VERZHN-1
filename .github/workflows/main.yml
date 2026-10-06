@@ -1,10 +1,10 @@
-name: Build DENTYAR V1 APK
+name: دانلود APK
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - main
+      - اصلی
 
 jobs:
   build:
@@ -14,15 +14,24 @@ jobs:
       - name: دریافت کد پروژه
         uses: actions/checkout@v4
 
+      - name: نصب Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
       - name: نصب Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '20'
+          cache: npm
 
-      - name: نصب وابستگی‌ها
-        run: npm install
+      - name: آماده‌سازی Node.js
+        run: |
+          npm init -y
+          npm install @capacitor/core @capacitor/cli @capacitor/android
 
-      - name: آماده‌سازی فایل‌های وب DENTYAR
+      - name: ساخت فایل‌های DENTYAR
         run: |
           rm -rf www
           mkdir -p www/js
@@ -32,29 +41,39 @@ jobs:
 
           cp *.js www/js/ 2>/dev/null || true
           cp *.css www/css/ 2>/dev/null || true
-
           cp *.json www/ 2>/dev/null || true
           cp *.png www/ 2>/dev/null || true
           cp *.jpg www/ 2>/dev/null || true
           cp *.jpeg www/ 2>/dev/null || true
           cp *.webp www/ 2>/dev/null || true
 
-          cp manifest.json www/manifest.json 2>/dev/null || true
-
-          echo "ساختار www:"
+          echo "ساختار WWW:"
           find www -maxdepth 2 -type f | sort
 
-      - name: نصب Capacitor
-        run: npm install @capacitor/core @capacitor/cli @capacitor/android
+      - name: ایجاد تنظیمات Capacitor
+        run: |
+          cat > capacitor.config.json <<'EOF'
+          {
+            "appId": "com.dentyar.app",
+            "appName": "DENTYAR",
+            "webDir": "www",
+            "bundledWebRuntime": false
+          }
+          EOF
 
       - name: ایجاد پروژه Android
         run: |
-          if [ ! -d "android" ]; then
-            npx cap add android
-          fi
+          npx cap add android
 
-      - name: همگام‌سازی Capacitor
-        run: npx cap sync android
+      - name: همگام‌سازی Android
+        run: |
+          npx cap sync android
+
+      - name: بررسی Java
+        run: |
+          java -version
+          cd android
+          ./gradlew --version
 
       - name: ساخت APK
         run: |
@@ -62,9 +81,9 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: ذخیره APK
+      - name: آپلود APK
         uses: actions/upload-artifact@v4
         with:
           name: DENTYAR-V1-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
-        
+          if-no-files-found: error
